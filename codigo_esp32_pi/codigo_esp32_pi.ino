@@ -2,13 +2,16 @@
 #include <HTTPClient.h>
 
 // ======== CONFIGURAÇÕES ========
-const char* ssid = "SEU_WIFI_SSID"; // Nome da rede
-const char* password = "SUA_SENHA_WIFI"; // Senha da rede
-String apiKey = "SUA_API_KEY_DO_THINGSPEAK"; // API Key do canal no speakthing
+const char* ssid = "Liliane"; // Nome da rede
+const char* password = "34966369"; // Senha da rede
+String apiKey = "KUTQOPRXL0OIAVOJ"; // API Key do canal no speakthing
 
 // ======== SENSORES E CONEXÓES ========
 const int echo = 0;
 const int trigger = 1;
+const int limite_presenca = 90;
+
+int presenca_anterior = 0;
 
 float duration, distance;
 
@@ -36,6 +39,14 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
+  sensor_read();
+  int presenca = (distance <= limite_presenca) ? 1 : 0;
+  
+  if (presenca != presenca_anterior)
+  {
+    presenca_anterior = presenca;
+    enviarThingSpeak(presenca_anterior);
+  }
 
 }
 
@@ -52,5 +63,31 @@ void sensor_read()
   distance = (duration*.0343)/2;
   Serial.print("Distance: ");
   Serial.println(distance);
+  Serial.println(" cm");
   delay(100);
+
+}
+
+void enviarThingSpeak(int valor) {
+
+  if (WiFi.status() == WL_CONNECTED) {
+
+    HTTPClient http;
+
+    String url = "http://api.thingspeak.com/update?api_key=" 
+                 + apiKey + "&field1=" + String(valor);
+
+    http.begin(url);
+    int httpCode = http.GET();
+
+    if (httpCode > 0) {
+      Serial.print("ThingSpeak resposta: ");
+      Serial.println(httpCode);
+    } else {
+      Serial.print("Erro envio: ");
+      Serial.println(httpCode);
+    }
+
+    http.end();
+  }
 }
