@@ -7,18 +7,37 @@ const char* password = "34966369"; // Senha da rede
 String apiKey = "KUTQOPRXL0OIAVOJ"; // API Key do canal no speakthing
 
 // ======== SENSORES E CONEXÓES ========
-const int echo = 0;
-const int trigger = 1;
-const int limite_presenca = 90;
+const int buzzer = 21;
+
+const int led_verde = 16;
+const int led_amarelo = 17;
+const int led_vermelho = 5;
+
+const int echo1 = 25;
+const int trigger1 = 26;
+
+const int echo2 = 32;
+const int trigger2 = 33;
+
+const int limite_presenca = 50;
 
 int presenca_anterior = 0;
 
-float duration, distance;
+float duracao1, duracao2, distancia1, distancia2;
 
 void setup() {
   // put your setup code here, to run once:
-  pinMode(trigger, OUTPUT);
-  pinMode(echo, INPUT);
+  pinMode(trigger1, OUTPUT);
+  pinMode(echo1, INPUT);
+
+  pinMode(trigger2, OUTPUT);
+  pinMode(echo2, INPUT);
+
+  pinMode(buzzer, OUTPUT);
+
+  pinMode(led_verde, OUTPUT);
+  pinMode(led_amarelo, OUTPUT);
+  pinMode(led_vermelho, OUTPUT);
 
   Serial.begin(115200);
   
@@ -34,36 +53,73 @@ void setup() {
   Serial.println("\nWi-Fi conectado!");
   Serial.print("Endereço IP: ");
   Serial.println(WiFi.localIP());
+
+  digitalWrite(led_verde, HIGH);
+  digitalWrite(led_amarelo, LOW);
+  digitalWrite(led_vermelho, LOW);
+  digitalWrite(buzzer, LOW);
 }
 
 
 void loop() {
   // put your main code here, to run repeatedly:
   sensor_read();
-  int presenca = (distance <= limite_presenca) ? 1 : 0;
+  int presenca1 = (distancia1 <= limite_presenca) ? 1 : 0;
+  int presenca2 = (distancia2 <= limite_presenca) ? 1 : 0;
   
-  if (presenca != presenca_anterior)
+  int presenca_atual = presenca2;
+  if (presenca_atual != presenca_anterior)
+    {
+      presenca_anterior = presenca_atual;
+      enviarThingSpeak(presenca_atual);
+    }
+
+  if (presenca1 && !presenca2)
   {
-    presenca_anterior = presenca;
-    enviarThingSpeak(presenca_anterior);
+    digitalWrite(led_verde, LOW);
+    digitalWrite(led_amarelo, HIGH);
+    digitalWrite(led_vermelho, LOW);
+    digitalWrite(buzzer, LOW);
+    return;
   }
+
+  if (presenca2)
+  {
+    digitalWrite(led_verde, LOW);
+    digitalWrite(led_amarelo, LOW);
+    digitalWrite(led_vermelho, HIGH);
+    digitalWrite(buzzer, HIGH);
+    return;
+  }
+
+  digitalWrite(led_verde, HIGH);
+  digitalWrite(led_amarelo, LOW);
+  digitalWrite(led_vermelho, LOW);
+  digitalWrite(buzzer, LOW);
 
 }
 
 
 void sensor_read()
 {
-  digitalWrite(trigger, LOW);
+  digitalWrite(trigger1, LOW);
   delayMicroseconds(2);
-  digitalWrite(trigger, HIGH);
+  digitalWrite(trigger1, HIGH);
   delayMicroseconds(10);
-  digitalWrite(trigger, LOW);
+  digitalWrite(trigger1, LOW);
 
-  duration = pulseIn(echo, HIGH);
-  distance = (duration*.0343)/2;
-  Serial.print("Distance: ");
-  Serial.println(distance);
-  Serial.println(" cm");
+  duracao1 = pulseIn(echo1, HIGH);
+  distancia1 = (duracao1*.0343)/2;
+
+  digitalWrite(trigger2, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigger2, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigger2, LOW);
+
+  duracao2 = pulseIn(echo2, HIGH);
+  distancia2 = (duracao2*.0343)/2;
+  
   delay(100);
 
 }
